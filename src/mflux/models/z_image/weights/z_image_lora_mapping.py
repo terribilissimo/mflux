@@ -8,11 +8,28 @@ class ZImageLoRAMapping(LoRAMapping):
         for layer_type in ["layers", "noise_refiner", "context_refiner"]:
             targets.extend(ZImageLoRAMapping._get_layer_targets(layer_type))
         targets.extend(ZImageLoRAMapping._get_global_targets())
-        # Add .default. variants for DiffSynth-Studio / i2L compatibility
+        # Add transformer. prefix variants (Diffusers / HF / i2L canonical format)
+        # Add .default. variants for DiffSynth-Studio compatibility
         for target in targets:
+            target.possible_up_patterns = ZImageLoRAMapping._add_transformer_prefix_variants(target.possible_up_patterns)
+            target.possible_down_patterns = ZImageLoRAMapping._add_transformer_prefix_variants(target.possible_down_patterns)
+            target.possible_alpha_patterns = ZImageLoRAMapping._add_transformer_prefix_variants(target.possible_alpha_patterns)
             target.possible_up_patterns = ZImageLoRAMapping._add_default_variants(target.possible_up_patterns)
             target.possible_down_patterns = ZImageLoRAMapping._add_default_variants(target.possible_down_patterns)
         return targets
+
+    @staticmethod
+    def _add_transformer_prefix_variants(patterns: list[str]) -> list[str]:
+        """Add transformer. prefix variants for bare layer-type patterns (no existing prefix).
+
+        i2L-generated LoRAs and Diffusers-trained LoRAs both use the transformer. prefix
+        as the canonical Diffusers / HF format.
+        """
+        extra = []
+        for p in patterns:
+            if p.startswith(("layers.", "noise_refiner.", "context_refiner.")):
+                extra.append(f"transformer.{p}")
+        return patterns + extra
 
     @staticmethod
     def _add_default_variants(patterns: list[str]) -> list[str]:

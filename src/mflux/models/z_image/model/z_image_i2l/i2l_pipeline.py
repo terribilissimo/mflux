@@ -191,11 +191,14 @@ class ZImageI2LPipeline:
         print(f"  Generated {len(lora)} LoRA weight tensors")
 
         # Save as safetensors (convert MLX bfloat16 -> float32 -> torch bfloat16)
+        # Keys are prefixed with 'transformer.' for Diffusers / HF compatibility.
+        # mflux's ZImageLoRAMapping and zima.py's LoRAMerger both handle this prefix.
         print(f"Saving to {output_path}...")
         lora_torch = {}
         for key, value in lora.items():
             np_array = np.array(value.astype(mx.float32))
-            lora_torch[key] = torch.from_numpy(np_array).to(torch.bfloat16)
+            prefixed_key = f"transformer.{key}" if not key.startswith("transformer.") else key
+            lora_torch[prefixed_key] = torch.from_numpy(np_array).to(torch.bfloat16)
 
         save_file(lora_torch, str(output_path))
 
